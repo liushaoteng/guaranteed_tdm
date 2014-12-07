@@ -1,0 +1,349 @@
+#ifndef _NETWORKDEF_H
+#define _NETWORKDEF_H
+
+#include "commonheader.h"
+#include "configuration.h"
+#include <stdexcept>
+
+
+DECLARE_EXTENDED_PHASE(cancelDueSameProbe);
+DECLARE_EXTENDED_PHASE(cancelDueContention);
+DECLARE_EXTENDED_PHASE(cancelOrigin);
+
+DECLARE_EXTENDED_PHASE(cancelDownwardLinks);
+DECLARE_EXTENDED_PHASE(succeed);
+
+DECLARE_EXTENDED_PHASE(dataTransfer);
+DECLARE_EXTENDED_PHASE(internal_Retry);
+DECLARE_EXTENDED_PHASE(internal_Cancel);
+DECLARE_EXTENDED_PHASE(wait_Transfer);
+DECLARE_EXTENDED_PHASE(feedbackCredit);
+DECLARE_EXTENDED_PHASE(bookAqueue);
+DECLARE_EXTENDED_PHASE(haveCredit);
+//DECLARE_EXTENDED_PHASE(highWay_Transfer);
+
+//DECLARE_EXTENDED_PHASE(resend);
+
+extern char path[100];
+extern int lifeTime;
+extern double scale_factor;
+class Router_err: public std::runtime_error{
+public:
+    explicit Router_err(const std::string &s, const std::string name): std::runtime_error(s), _name(name) {
+
+    }
+    virtual ~Router_err () throw() {}
+    std::string name () const{
+        return _name;
+    }
+private:
+    std::string _name;
+
+};
+
+class SlotManager {
+public:
+
+
+    void slotManager ()
+    {
+        // reset();
+    }
+    bool increasePositive () {
+        // _positiveSlot = (_positiveSlot+1)% SLOTDEPTH;
+        return true;
+    }
+    bool increaseNegtive() {
+        // _negtiveSlot = (_negtiveSlot+SLOTDEPTH-1)%SLOTDEPTH;
+        return true;
+    }
+    //    bool reset() {
+    //        _positiveSlot =0;
+    //        _negtiveSlot =0;
+    //        return true;
+    //    }
+    static  int readPositive(int depth= SLOTDEPTH, int width= SLOTWIDTH)
+    {
+        int currentTime = int(sc_core::sc_time_stamp().value());
+        int  curSlots= currentTime/width;
+        int _positiveSlot = curSlots%depth;
+        return _positiveSlot ;
+    }
+    static  int readnegtive(int depth= SLOTDEPTH, int width= SLOTWIDTH) {
+        int currentTime = int(sc_core::sc_time_stamp().value());
+        int  curSlots= (0-currentTime)/width;
+        int _negtiveSlot = (curSlots%depth+depth)%depth;
+
+        return _negtiveSlot;
+    }
+    static  int PosToNegSlot(int depth= SLOTDEPTH, int width = SLOTWIDTH) {
+
+        int value =((readnegtive()-readPositive() + depth)%depth)*width - (sc_core::sc_time_stamp().value()%width);
+        if (value ==0)
+            value= value +SLOTDEPTH*SLOTWIDTH;
+        //value = (value+1)%width;
+        else if (value <0)
+            //    value = (-value + 1)%width;               // this is only one option, we have other options.
+            value = value +SLOTDEPTH*SLOTWIDTH;
+        return value;
+
+    }
+    static int pos_waitingTime (int id, int depth= SLOTDEPTH, int width = SLOTWIDTH) {
+        int value =((id-readPositive() + depth)%depth)*width - (sc_core::sc_time_stamp().value()%width);
+        if (value ==0)
+            value= value +SLOTDEPTH*SLOTWIDTH;
+        //value = (value+1)%width;
+        else if (value <0)
+            // value = (-value + 1)%width;               // this is only one option, we have other options.
+            value = value +SLOTDEPTH*SLOTWIDTH;
+        return value;
+    }
+private:
+
+
+};
+extern SlotManager Slot;
+
+namespace PPB {
+enum trans_type_enum {
+    SingleProbe = 0, MultiProbe = 1
+    //when book one channel, its single probe, when book more than one, it is Multiprobe
+};
+inline const char ** get_trans_type_vec(){
+    static const char *trans_type_name[]={"singleProbbe", "MultiProbe"};
+    return trans_type_name;
+}
+
+
+enum channel_status_enum {
+    Idle = 0, Booked = 1, Busy = 2, Cancellation = 3
+};
+
+inline const char ** get_channel_status_vec(){
+    static const char *channel_status_name[]={"Idle", "Booked","Busy","Cancellation"};
+    return channel_status_name;
+}
+
+enum request_status_enum {
+    Generated=0, Sendout=1, PatialSucceed=3, FullySucceed=4
+};
+
+inline const char ** get_request_status_vec(){
+    static const char *channel_status_name[]={"Generated", "Sendout","PatialSuceed","FullySucceed"};
+    return channel_status_name;
+}
+
+enum direction_enum {
+    North=0, East=1, South=2, West=3, Resource=4, Nodrctn=5
+};
+inline const char ** get_direction_vec(){
+    static const char *direction_name[]={"North", "East","South","West","Resource","Nodrctn"};
+    return direction_name;
+}
+
+
+struct Probe_protocol_types {
+    typedef tlm::tlm_generic_payload tlm_payload_type;
+    typedef tlm::tlm_phase tlm_phase_type;
+};
+
+struct Channel {
+    int id;
+    channel_status_enum status;
+};
+
+class ProbeProperty {
+public:
+    Channel inputChannel;
+    std::vector <Channel> outputChannel;
+    unsigned int highPriority;
+    unsigned int lowPriority;
+    unsigned int srcId;
+    unsigned int dstId;
+    int multiChannelProbe;
+    direction_enum aimingDirections[2];
+    tlm::tlm_generic_payload *  trans;
+    bool ownAQueue;
+    bool tryCheck;
+    //bool invalid;
+
+    ~ProbeProperty()
+    {
+        outputChannel.clear();
+        outputChannel.resize(0);
+    }
+    ProbeProperty (){
+        highPriority=-1;
+        lowPriority=-1;
+        srcId=-1;
+        dstId=-1;
+        aimingDirections[0]=Nodrctn;
+        aimingDirections[1]=Nodrctn;
+        trans=0;
+        multiChannelProbe=0;
+        inputChannel.id=-1;
+        inputChannel.status = Idle;
+        ownAQueue=false;
+        tryCheck =false;
+
+    }
+    ProbeProperty (const ProbeProperty & orig) {
+
+        this->inputChannel = orig.inputChannel;
+        this->outputChannel.resize(orig.outputChannel.size());
+        memcpy(&this->outputChannel[0], & orig.outputChannel[0], orig.outputChannel.size() * sizeof(Channel));
+        this->highPriority = orig.highPriority;
+        this->lowPriority = orig.lowPriority;
+        this-> srcId= orig.srcId;
+        this->dstId = orig.dstId;
+        this->multiChannelProbe=orig.multiChannelProbe;
+        this->aimingDirections[0]=orig.aimingDirections[0];
+        this->aimingDirections[1]=orig.aimingDirections[1];
+        this->trans = orig.trans;
+        this->ownAQueue = orig.ownAQueue;
+        this->tryCheck = orig.tryCheck;
+
+        // std::cout << "my_type(my_type&)" << aimingDirections[0] << " " << orig.aimingDirections[0] << std::endl;
+    }
+
+};
+
+struct Probe_extension: tlm::tlm_extension<Probe_extension> {
+    Probe_extension() {
+        srcId = 0;
+        dstId = 0;
+        probeType = SingleProbe;
+        multiChannelProbe = 0;
+        r_id = -1;
+        src_slotId=-1;
+        src_CHId =-1;
+        temp_inSlotId =-1;
+        haveQueue=false;
+        maxSharing=0;
+        tokenFromDownLink = 0;
+        confirmWithQueue = false;
+        confirmQueueInTransfer =false;
+        tryCheckQueue = false;
+	
+        // retrytimes=0;
+    }
+
+    unsigned int srcId;
+    int src_slotId;
+    int src_CHId;
+    unsigned int dstId;
+    int temp_inSlotId;
+    int r_id;
+    bool haveQueue;
+    bool confirmWithQueue;
+
+    //bool checkQueue;
+
+    int maxSharing;
+    int tokenFromDownLink;
+
+    bool tryCheckQueue;
+    bool lastCheck;
+        bool confirmQueueInTransfer;
+
+    // int retrytimes;
+
+    sc_dt::sc_uint<COL_BITS> srcCol;
+    sc_dt::sc_uint<COL_BITS> srcRow;
+    sc_dt::sc_uint<COL_BITS> dstCol;
+    sc_dt::sc_uint<COL_BITS> dstRow;
+
+    trans_type_enum probeType;
+    int multiChannelProbe;
+
+    virtual tlm::tlm_extension_base *clone() const {
+        Probe_extension *t = new Probe_extension;
+        t->dstId = this->dstId;
+        t->srcId = this->srcId;
+        t->src_slotId=this->src_slotId;
+        t->src_CHId = this->src_CHId;
+        t->temp_inSlotId = this ->temp_inSlotId;
+        t->r_id = this ->r_id;
+        t->dstCol= this->dstCol;
+        t->dstRow= this->dstRow;
+        t->srcCol= this->srcCol;
+        t->srcRow= this->srcRow;
+
+        t->probeType = this->probeType;
+        t->multiChannelProbe = this->multiChannelProbe;
+
+        t->haveQueue = this->haveQueue;
+        t->confirmWithQueue = this->confirmWithQueue;
+        t->maxSharing = this->maxSharing;
+        t->tokenFromDownLink = this-> tokenFromDownLink;
+        t->tryCheckQueue = this->tryCheckQueue;
+	t->lastCheck = this->lastCheck;
+        t->confirmQueueInTransfer = this -> confirmQueueInTransfer;
+        return t;
+    }
+    virtual void copy_from(tlm_extension_base const &ext) {
+        dstId = static_cast<Probe_extension const &>(ext).dstId;
+        srcId = static_cast<Probe_extension const &>(ext).srcId;
+        dstCol= static_cast<Probe_extension const &>(ext).dstCol;
+        dstRow= static_cast<Probe_extension const &>(ext).dstRow;
+        probeType = static_cast<Probe_extension const &>(ext).probeType;
+        src_slotId = static_cast<Probe_extension const &>(ext).src_slotId;
+        src_CHId = static_cast<Probe_extension const &>(ext).src_CHId;
+        temp_inSlotId = static_cast<Probe_extension const &>(ext).temp_inSlotId;
+        r_id = static_cast<Probe_extension const &>(ext).r_id;
+        multiChannelProbe =
+                static_cast<Probe_extension const &>(ext).multiChannelProbe;
+       haveQueue= static_cast <Probe_extension const& > (ext).haveQueue;
+       confirmWithQueue = static_cast <Probe_extension const& > (ext).confirmWithQueue;
+       maxSharing=static_cast <Probe_extension const& > (ext).maxSharing;
+       tokenFromDownLink = static_cast <Probe_extension const& > (ext).tokenFromDownLink;
+       tryCheckQueue = static_cast <Probe_extension const& > (ext).tryCheckQueue;
+       lastCheck = static_cast <Probe_extension const& > (ext).lastCheck;
+       confirmQueueInTransfer = static_cast <Probe_extension const& > (ext).confirmQueueInTransfer;
+    }
+
+};
+class request_monitor {
+public:
+    int r_id;
+    int col;
+    int row;
+    double THG_req;      //Throughput require
+    int LT_req;        //life time require
+    int amount;
+    int gen_time;
+    int send_time;
+    int retry_time;
+    int succeed_time;
+    int finish_time;
+    int close_time;
+    int distance;
+    int higwayEffort;
+    tlm::tlm_generic_payload* selected_trans;
+    bool close_selection;
+    bool busyIngetQueue;
+    bool getQueueFailed;
+    bool getQueueSucceed;
+
+    request_status_enum status;
+    int num_succeeds;
+    int num_Queue;
+    request_monitor (){
+        _copies=0;
+    }
+    void add() {
+        _copies++;
+    }
+    void release() {
+        _copies--;
+
+    }
+    //private:
+    int _copies;
+};
+
+
+
+}
+
+#endif

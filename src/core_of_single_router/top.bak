@@ -1,0 +1,48 @@
+/*
+ * top.h
+ * This version is just for a simple test with 1 rsc and 1 router
+ *  Created on: Mar 21, 2012
+ *      Author: lsteng
+ */
+
+#ifndef TOP_H_
+#define TOP_H_
+#include "commonheader.h"
+#include "simpleresource.h"
+#include "Router.h"
+#include "assert.h"
+#include "DummyModule.h"
+
+namespace PPB {
+
+class Top :sc_core::sc_module {
+public:
+    SimpleResource* resource[1];
+    Router *  router[1];
+    DummyModule* dummy;
+
+    SC_CTOR(Top)
+    {
+        resource[0]=new SimpleResource("node (0,0)",0,0);
+        router[0] = new Router("router (0,0)",0,0);
+        dummy = new DummyModule("dummy_(0,0)",0,0);
+        int portId;
+        for (int i=0; i<CHANNEL_PER_DIRECTION;i++)
+        {
+            portId=Resource*CHANNEL_PER_DIRECTION+i;
+            resource[0]->send_socket[i]->bind(*router[0]->in_socket[portId]);
+            router[0]->out_socket[portId]->bind(resource[0]->recieve_socket);
+        }
+        for (int i=0;i<16;i++){
+            router[0]->out_socket[i]->bind(dummy->recieve_socket);
+            dummy->send_socket.bind(*router[0]->in_socket[i]);
+        }
+
+    }
+
+
+    virtual ~Top();
+};
+
+} /* namespace PPB */
+#endif /* TOP_H_ */

@@ -1,0 +1,12 @@
+#Fri Jan 20 14:25:05 CET 2012
+eclipse.preferences.version=1
+environment/project/cdt.managedbuild.config.gnu.exe.debug.601961140/SC_SIGNAL_WRITE_CHECK/delimiter=\:
+environment/project/cdt.managedbuild.config.gnu.exe.debug.601961140/SC_SIGNAL_WRITE_CHECK/operation=append
+environment/project/cdt.managedbuild.config.gnu.exe.debug.601961140/SC_SIGNAL_WRITE_CHECK/value=DISABLE
+environment/project/cdt.managedbuild.config.gnu.exe.debug.601961140/append=true
+environment/project/cdt.managedbuild.config.gnu.exe.debug.601961140/appendContributed=true
+environment/project/cdt.managedbuild.config.gnu.exe.release.1758425932/SC_SIGNAL_WRITE_CHECK/delimiter=\:
+environment/project/cdt.managedbuild.config.gnu.exe.release.1758425932/SC_SIGNAL_WRITE_CHECK/operation=append
+environment/project/cdt.managedbuild.config.gnu.exe.release.1758425932/SC_SIGNAL_WRITE_CHECK/value=DISABLE
+environment/project/cdt.managedbuild.config.gnu.exe.release.1758425932/append=true
+environment/project/cdt.managedbuild.config.gnu.exe.release.1758425932/appendContributed=true
