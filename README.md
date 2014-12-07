@@ -11,7 +11,7 @@ http://www.accellera.org/downloads/standards/systemc
 
 3. Check whether the packages required by testbench/Data_processor_1.4.pl are installed
 
-4. Go into testbench/. Use matlab to run the script auto_process_float.m. This script will automatically changes the simulator settings, generate testbenches, compile the source code,  run the simulation and analyze data. The simulation results will be put into Results_*/
+4. Go into testbench/. Use matlab to run the script auto_process_float.m. This script will automatically change the simulator settings, generate testbenches, compile the source code,  run the simulation and analyze data. The simulation results will be put into testbench/results_*/
 
 
 Good luck
