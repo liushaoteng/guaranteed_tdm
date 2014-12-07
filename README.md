@@ -1,9 +1,9 @@
-The purpose of the project "guaranteed_TDM" is simulate a TDM based communication network for on-chip usage. For this TDM communication network, its hardware behaviour is described by using SystemC.The simulator is cycle-accurate. 
+The purpose of this project "guaranteed_TDM" is to simulate a TDM based communication network for on-chip usage.  This TDM communication network is designed by myself. It can set up TDM connections at runtime to offer guaranteed communication service.  Its hardware behaviour is described by using SystemC, which is cycle-accurate. 
 
 This project contains three folders: src/, testbench/, build/. I use Cmake to auto-generate the Makefile of this project. The src/ contains all the c++ source files of this project. The testbench/ contains matlab and perl scripts to generate testbenches and analyzes simulation results. The build/ holds the intermediate files generated during the compilation process. 
 
 In order to build and run this project: 
-1. Install cmake and systemc 2.3.x
+1. Install Cmake and SystemC 2.3.x
 http://www.cmake.org/install/
 http://www.accellera.org/downloads/standards/systemc
 
